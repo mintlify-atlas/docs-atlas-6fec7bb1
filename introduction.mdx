@@ -1,0 +1,82 @@
+---
+title: Introduction
+description: Overview of Lantern, a powerful service to broadcast your Discord presence via API and WebSocket
+---
+
+Lantern is a powerful service designed to effortlessly broadcast your active Discord status to both a RESTful API endpoint and a WebSocket connection. Whether you want to showcase your current Spotify tracks on your personal site or display your Discord activities in real-time, Lantern has you covered.
+
+## What is Lantern?
+
+Lantern monitors your Discord presence and makes it available through two interfaces:
+
+- **RESTful API**: Access user data at `lantern.rest/api/v1/users/:user_id`
+- **WebSocket**: Real-time updates via `wss://lantern.rest/socket`
+
+While Lantern is ready to use out-of-the-box without any deployment, it also offers the flexibility for self-hosting with minimal setup.
+
+## Key features
+
+<CardGroup cols={2}>
+  <Card title="Real-time presence tracking" icon="signal">
+    Monitor Discord status, activities, and Spotify playback in real-time through WebSocket connections
+  </Card>
+  <Card title="RESTful API" icon="code">
+    Access user data through a simple REST API with support for single or bulk user queries
+  </Card>
+  <Card title="Key-value storage" icon="database">
+    Store up to 512 key-value pairs per user for configuration, dynamic data, or user preferences
+  </Card>
+  <Card title="SVG card generation" icon="image">
+    Generate customizable SVG cards displaying user presence, perfect for embedding in websites
+  </Card>
+</CardGroup>
+
+## Use cases
+
+<AccordionGroup>
+  <Accordion title="Display Spotify activity on your website">
+    Show your currently playing Spotify track with album art, artist, and playback progress on your personal website or portfolio.
+  </Accordion>
+  <Accordion title="Show Discord status in real-time">
+    Display your online status, current game or activity, and custom status on external platforms.
+  </Accordion>
+  <Accordion title="Track presence across platforms">
+    Monitor whether you're online on desktop, mobile, or web, and display platform-specific indicators.
+  </Accordion>
+  <Accordion title="Store dynamic profile data">
+    Use the KV storage to store configuration values, current location, user preferences, or any temporary data for your website.
+  </Accordion>
+</AccordionGroup>
+
+## What data does Lantern provide?
+
+Lantern provides comprehensive user data including:
+
+- **User metadata**: Username, discriminator, global name, avatar, badges, and Discord flags
+- **Active platforms**: Current status on desktop, mobile, and web
+- **Spotify integration**: Currently playing track, artist, album, album cover, and playback timestamps
+- **Activities**: Games, custom statuses, and rich presence data with application details
+- **Server tag**: Guild badges and server affiliations
+- **Last seen**: Timestamp of when the user was last online (when offline)
+- **Key-value storage**: Custom data stored by the user
+
+## Getting started
+
+To start using Lantern, you'll need:
+
+1. A Discord user ID to monitor (17-19 digit number)
+2. The user must be monitored by the Lantern system (join the Lantern Discord server)
+
+<Note>
+Users must be part of the Lantern Discord server to be monitored. Once joined, their presence data becomes available through the API and WebSocket.
+</Note>
+
+Check out the [quickstart guide](/quickstart) to make your first API call and establish a WebSocket connection.
+
+## OpenAPI documentation
+
+Lantern provides full OpenAPI documentation for the RESTful API at:
+
+**https://lantern.rest/docs**
+
+You can also refer to the `swagger.json` file in the repository for detailed API specifications.

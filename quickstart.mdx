@@ -1,80 +1,437 @@
 ---
-title: "Quickstart"
-description: "Start building awesome documentation in minutes"
+title: Quickstart
+description: Step-by-step guide to making your first API call and establishing a WebSocket connection with Lantern
 ---
 
-## Get started in three steps
+This guide will walk you through making your first API call to retrieve Discord presence data and establishing a real-time WebSocket connection.
 
-Get your documentation site running locally and make your first customization.
+## Prerequisites
 
-### Step 1: Set up your local environment
+Before you begin, ensure you have:
 
-<AccordionGroup>
-  <Accordion icon="copy" title="Clone your docs locally">
-    During the onboarding process, you created a GitHub repository with your docs content if you didn't already have one. You can find a link to this repository in your [dashboard](https://dashboard.mintlify.com).
-    
-    To clone the repository locally so that you can make and preview changes to your docs, follow the [Cloning a repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) guide in the GitHub docs.
-  </Accordion>
-  <Accordion icon="rectangle-terminal" title="Start the preview server">
-    1. Install the Mintlify CLI: `npm i -g mint`
-    2. Navigate to your docs directory and run: `mint dev`
-    3. Open `http://localhost:3000` to see your docs live!
-    
-    <Tip>Your preview updates automatically as you edit files.</Tip>
-  </Accordion>
-</AccordionGroup>
+- A Discord user ID to monitor (17-19 digit number)
+- The user must be monitored by the Lantern system
 
-### Step 2: Deploy your changes
+<Note>
+Users must join the Lantern Discord server to be monitored. The system tracks their presence and makes it available through the API.
+</Note>
 
-<AccordionGroup>
-  <Accordion icon="github" title="Install our GitHub app">
-    Install the Mintlify GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app).
-    
-    Our GitHub app automatically deploys your changes to your docs site, so you don't need to manage deployments yourself.
-</Accordion>
-<Accordion icon="palette" title="Update your site name and colors">
-    For a first change, let's update the name and colors of your docs site.
+## Making your first API call
 
-    1. Open `docs.json` in your editor.
-    2. Change the `"name"` field to your project name.
-    3. Update the `"colors"` to match your brand.
-    4. Save and see your changes instantly at `http://localhost:3000`.
+<Steps>
+  <Step title="Get a single user's data">
+    Retrieve presence data for a specific user by making a GET request to `/api/v1/users/:id`.
 
-    <Tip>Try changing the primary color to see an immediate difference!</Tip>
-  </Accordion>
-</AccordionGroup>
+    <CodeGroup>
+      ```bash cURL
+      curl https://lantern.rest/api/v1/users/123456789012345678
+      ```
 
-### Step 3: Go live
+      ```javascript JavaScript
+      const response = await fetch('https://lantern.rest/api/v1/users/123456789012345678');
+      const userData = await response.json();
+      console.log(userData);
+      ```
 
-<Accordion icon="rocket" title="Publish your docs">
-  1. Commit and push your changes.
-  2. Your docs will update and be live in moments!
-</Accordion>
+      ```python Python
+      import requests
+
+      response = requests.get('https://lantern.rest/api/v1/users/123456789012345678')
+      user_data = response.json()
+      print(user_data)
+      ```
+    </CodeGroup>
+
+    **Response:**
+    ```json
+    {
+      "metadata": {
+        "id": "123456789012345678",
+        "username": "example",
+        "discriminator": "0",
+        "global_name": "example",
+        "avatar": "abcdef1234567890",
+        "avatar_url": "https://cdn.discordapp.com/avatars/123456789012345678/123456789012345678.webp",
+        "display_avatar_url": "https://cdn.discordapp.com/avatars/123456789012345678/123456789012345678.webp",
+        "bot": false,
+        "flags": {
+          "human_readable": ["Staff"],
+          "bitfield": 1
+        },
+        "monitoring_since": {
+          "unix": 1620000000,
+          "raw": "2021-05-03T00:00:00.000Z"
+        }
+      },
+      "active_platforms": {
+        "desktop": "online",
+        "mobile": "offline",
+        "web": "offline",
+        "spotify": {
+          "track_id": "abcdef1234567890",
+          "song": "example",
+          "artist": "example",
+          "album": "example",
+          "album_cover": "https://i.scdn.co/image/abcdef1234567890",
+          "start_time": {
+            "unix": 1620000000,
+            "raw": "2021-05-03T00:00:00.000Z"
+          },
+          "end_time": {
+            "unix": 1620000000,
+            "raw": "2021-05-03T00:00:00.000Z"
+          },
+          "time": {
+            "current_human_readable": "00:00",
+            "end_human_readable": "00:00"
+          }
+        }
+      },
+      "activities": [
+        {
+          "id": "abcdef1234567890",
+          "name": "example",
+          "type": "PLAYING",
+          "state": "example",
+          "details": "example",
+          "application_id": "123456789012345678",
+          "created_at": 1620000000,
+          "assets": {
+            "large_image": {
+              "hash": "abcdef1234567890",
+              "image_url": "https://cdn.discordapp.com/app-assets/123456789012345678/abcdef1234567890.png",
+              "text": "example"
+            },
+            "small_image": {
+              "hash": "abcdef1234567890",
+              "image_url": "https://cdn.discordapp.com/app-assets/123456789012345678/abcdef1234567890.png",
+              "text": "example"
+            }
+          },
+          "timestamps": {
+            "start_time": {
+              "unix": 1620000000,
+              "raw": "2021-05-03T00:00:00.000Z"
+            }
+          }
+        }
+      ],
+      "storage": {
+        "key": "value"
+      },
+      "server_tag": {
+        "guild_id": "987654321098765432",
+        "name": "GGEZ",
+        "icon_url": "https://cdn.discordapp.com/guild-tag-badges/1234567890123456789/abcdef1234567890.webp"
+      },
+      "status": "online",
+      "last_seen_at": null
+    }
+    ```
+  </Step>
+
+  <Step title="Get multiple users' data">
+    Retrieve presence data for multiple users by making a GET request to `/api/v1/users` with `user_ids` query parameters.
+
+    <CodeGroup>
+      ```bash cURL
+      curl "https://lantern.rest/api/v1/users?user_ids=123456789012345678&user_ids=234567890123456789"
+      ```
+
+      ```javascript JavaScript
+      const userIds = ['123456789012345678', '234567890123456789'];
+      const params = new URLSearchParams();
+      userIds.forEach(id => params.append('user_ids', id));
+
+      const response = await fetch(`https://lantern.rest/api/v1/users?${params}`);
+      const usersData = await response.json();
+      console.log(usersData);
+      ```
+
+      ```python Python
+      import requests
+
+      user_ids = ['123456789012345678', '234567890123456789']
+      params = [('user_ids', uid) for uid in user_ids]
+
+      response = requests.get('https://lantern.rest/api/v1/users', params=params)
+      users_data = response.json()
+      print(users_data)
+      ```
+    </CodeGroup>
+
+    <Info>
+    The maximum number of user IDs you can retrieve at once is 50. The response will be an array of user objects.
+    </Info>
+  </Step>
+
+  <Step title="Generate an SVG card">
+    Create a customizable SVG card displaying user presence by adding query parameters to the user endpoint.
+
+    <CodeGroup>
+      ```bash cURL
+      curl "https://lantern.rest/api/v1/users/123456789012345678?svg=1&theme=dark&borderRadius=2"
+      ```
+
+      ```html HTML
+      <img src="https://lantern.rest/api/v1/users/123456789012345678?svg=1&theme=dark&borderRadius=2" alt="Discord Presence" />
+      ```
+    </CodeGroup>
+
+    Available customization options:
+    - `svg`: Set to `1` to return an SVG image
+    - `theme`: Choose `light` or `dark` (default: `dark`)
+    - `borderRadius`: Border radius in rem (default: `2`)
+    - `hideGlobalName`: Set to `1` to hide the global name
+    - `hideStatus`: Set to `1` to hide the status
+    - `hideBadges`: Set to `1` to hide the badges
+    - `hideActivity`: Set to `1` to hide the activity
+    - `hideLastSeen`: Set to `1` to hide the last seen time
+    - `hideServerTag`: Set to `1` to hide the server tag
+    - `noActivityTitle`: Custom title when no activity (max 64 characters)
+    - `noActivityMessage`: Custom message when no activity (max 256 characters)
+  </Step>
+</Steps>
+
+## Establishing a WebSocket connection
+
+<Steps>
+  <Step title="Connect to the WebSocket server">
+    Establish a connection to the WebSocket endpoint at `wss://lantern.rest/socket`.
+
+    <CodeGroup>
+      ```javascript JavaScript
+      const ws = new WebSocket('wss://lantern.rest/socket');
+
+      ws.onopen = () => {
+        console.log('Connected to Lantern WebSocket');
+      };
+
+      ws.onmessage = (event) => {
+        const message = JSON.parse(event.data);
+        console.log('Received:', message);
+      };
+
+      ws.onerror = (error) => {
+        console.error('WebSocket error:', error);
+      };
+
+      ws.onclose = () => {
+        console.log('Disconnected from Lantern WebSocket');
+      };
+      ```
+
+      ```python Python
+      import websocket
+      import json
+
+      def on_message(ws, message):
+          data = json.loads(message)
+          print('Received:', data)
+
+      def on_error(ws, error):
+          print('Error:', error)
+
+      def on_close(ws, close_status_code, close_msg):
+          print('WebSocket closed')
+
+      def on_open(ws):
+          print('Connected to Lantern WebSocket')
+
+      ws = websocket.WebSocketApp('wss://lantern.rest/socket',
+                                  on_open=on_open,
+                                  on_message=on_message,
+                                  on_error=on_error,
+                                  on_close=on_close)
+      ws.run_forever()
+      ```
+    </CodeGroup>
+  </Step>
+
+  <Step title="Receive the HELLO message">
+    Once connected, you will receive `Opcode 1: HELLO` containing the `heartbeat_interval`.
+
+    **Example payload:**
+    ```json
+    {
+      "t": "HELLO",
+      "op": 1,
+      "d": {
+        "heartbeat_interval": 10000
+      }
+    }
+    ```
+
+    Set up a repeating interval to send heartbeat messages at the specified interval.
+
+    ```javascript JavaScript
+    ws.onmessage = (event) => {
+      const message = JSON.parse(event.data);
+      
+      if (message.op === 1) {
+        // HELLO received
+        const heartbeatInterval = message.d.heartbeat_interval;
+        
+        // Start heartbeat
+        setInterval(() => {
+          ws.send(JSON.stringify({
+            "t": "HEARTBEAT",
+            "op": 4
+          }));
+        }, heartbeatInterval);
+      }
+    };
+    ```
+  </Step>
+
+  <Step title="Initialize your subscription">
+    Send `Opcode 2: INITIALIZE` immediately after receiving the HELLO message to subscribe to user updates.
+
+    <CodeGroup>
+      ```json Subscribe to a single user
+      {
+        "op": 2,
+        "d": {
+          "user_id": "123456789012345678"
+        }
+      }
+      ```
+
+      ```json Subscribe to multiple users
+      {
+        "op": 2,
+        "d": {
+          "user_ids": ["123456789012345678", "234567890123456789"]
+        }
+      }
+      ```
+
+      ```json Subscribe to all users
+      {
+        "op": 2,
+        "d": {
+          "user_id": "All"
+        }
+      }
+      ```
+    </CodeGroup>
+
+    ```javascript JavaScript
+    ws.onmessage = (event) => {
+      const message = JSON.parse(event.data);
+      
+      if (message.op === 1) {
+        // HELLO received - send INITIALIZE
+        ws.send(JSON.stringify({
+          "op": 2,
+          "d": {
+            "user_id": "123456789012345678"
+          }
+        }));
+        
+        // Start heartbeat
+        const heartbeatInterval = message.d.heartbeat_interval;
+        setInterval(() => {
+          ws.send(JSON.stringify({ "t": "HEARTBEAT", "op": 4 }));
+        }, heartbeatInterval);
+      }
+    };
+    ```
+  </Step>
+
+  <Step title="Receive acknowledgement and updates">
+    You will receive `Opcode 3: INITIALIZE_ACK` containing the initial data for subscribed users.
+
+    **Example payload:**
+    ```json
+    {
+      "t": "INIT_ACK",
+      "op": 3,
+      "d": {
+        // User data object (or array if multiple users)
+      }
+    }
+    ```
+
+    When a user's presence updates, you'll receive `Opcode 6: PRESENCE_UPDATE`:
+
+    ```json
+    {
+      "t": "PRESENCE_UPDATE",
+      "op": 6,
+      "d": {
+        // Updated user data
+      }
+    }
+    ```
+
+    Handle these messages to update your UI in real-time:
+
+    ```javascript JavaScript
+    ws.onmessage = (event) => {
+      const message = JSON.parse(event.data);
+      
+      switch (message.op) {
+        case 1: // HELLO
+          // Initialize connection (see previous step)
+          break;
+        case 3: // INIT_ACK
+          console.log('Initial data:', message.d);
+          break;
+        case 5: // HEARTBEAT_ACK
+          console.log('Heartbeat acknowledged');
+          break;
+        case 6: // PRESENCE_UPDATE
+          console.log('Presence updated:', message.d);
+          // Update your UI with new presence data
+          break;
+        case 7: // USER_LEFT
+          console.log('User left:', message.d.user_id);
+          break;
+        case 8: // USER_JOINED
+          console.log('User joined:', message.d);
+          break;
+        case 10: // STORAGE_UPDATE
+          console.log('Storage updated:', message.d);
+          break;
+        case 11: // ERROR
+          console.error('Error:', message.d);
+          break;
+      }
+    };
+    ```
+  </Step>
+</Steps>
+
+## WebSocket opcodes reference
+
+| Opcode | Type | Direction | Description |
+|--------|------|-----------|-------------|
+| 1 | HELLO | Server → Client | Contains heartbeat interval |
+| 2 | INIT | Client → Server | Initialize subscription |
+| 3 | INIT_ACK | Server → Client | Subscription acknowledged with initial data |
+| 4 | HEARTBEAT | Client → Server | Keep connection alive |
+| 5 | HEARTBEAT_ACK | Server → Client | Heartbeat acknowledged |
+| 6 | PRESENCE_UPDATE | Server → Client | User presence changed |
+| 7 | USER_LEFT | Server → Client | User left the server |
+| 8 | USER_JOINED | Server → Client | New user joined |
+| 9 | DISCONNECT | Server → Client | Connection closed |
+| 10 | STORAGE_UPDATE | Server → Client | KV storage updated |
+| 11 | ERROR | Server → Client | Error occurred |
+| 12 | SUBSCRIBE | Client → Server | Subscribe to additional users |
+| 13 | SUBSCRIBE_ACK | Server → Client | Subscription acknowledged |
+| 14 | UNSUBSCRIBE | Client → Server | Unsubscribe from users |
+| 15 | UNSUBSCRIBE_ACK | Server → Client | Unsubscription acknowledged |
 
 ## Next steps
 
-Now that you have your docs running, explore these key features:
+Now that you've made your first API call and established a WebSocket connection, explore more features:
 
-<CardGroup cols={2}>
+- Learn about the [key-value storage system](/guides/kv-storage) for storing custom data
+- Explore the [complete API reference](/api/overview) for all available endpoints
+- Check out [self-hosting options](/guides/self-hosting) if you want to run your own instance
+- Read the [WebSocket guide](/guides/websocket) for real-time updates
 
-<Card title="Write Content" icon="pen-to-square" href="/essentials/markdown">
-  Learn MDX syntax and start writing your documentation.
-</Card>
-
-<Card title="Customize style" icon="palette" href="/essentials/settings">
-  Make your docs match your brand perfectly.
-</Card>
-
-<Card title="Add code examples" icon="square-code" href="/essentials/code">
-  Include syntax-highlighted code blocks.
-</Card>
-
-<Card title="API documentation" icon="code" href="/api-reference/introduction">
-  Auto-generate API docs from OpenAPI specs.
-</Card>
-
-</CardGroup>
-
-<Note>
-  **Need help?** See our [full documentation](https://mintlify.com/docs) or join our [community](https://mintlify.com/community).
-</Note>
+<Warning>
+Remember to implement proper error handling and reconnection logic for production WebSocket connections.
+</Warning>

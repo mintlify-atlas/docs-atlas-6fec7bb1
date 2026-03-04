@@ -1,0 +1,579 @@
+---
+title: WebSocket protocol
+description: Complete guide to connecting and communicating with Lantern's real-time WebSocket API
+---
+
+Lantern provides a WebSocket connection for real-time presence updates. Connect to receive live updates when users change their Discord status, activities, or Spotify tracks.
+
+## Connection endpoint
+
+Connect to the WebSocket server at:
+
+```
+wss://lantern.rest/socket
+```
+
+For self-hosted instances:
+
+```
+ws://localhost:8000/socket
+```
+
+## Connection flow
+
+Follow these steps to establish a WebSocket connection:
+
+<Steps>
+  <Step title="Connect to the WebSocket">
+    Open a WebSocket connection to `wss://lantern.rest/socket`.
+  </Step>
+
+  <Step title="Receive Hello message">
+    The server sends Opcode 1: Hello with the heartbeat interval:
+
+    ```json
+    {
+      "t": "HELLO",
+      "op": 1,
+      "d": {
+        "heartbeat_interval": 30000
+      }
+    }
+    ```
+
+    <Note>
+      The `heartbeat_interval` is in milliseconds. You must send heartbeats at this interval to keep the connection alive.
+    </Note>
+  </Step>
+
+  <Step title="Initialize subscription">
+    Send Opcode 2: Initialize immediately after receiving Hello. You have 5 seconds to send this or the connection will close.
+
+    <Tabs>
+      <Tab title="Single user">
+        ```json
+        {
+          "op": 2,
+          "d": {
+            "user_id": "123456789012345678"
+          }
+        }
+        ```
+      </Tab>
+
+      <Tab title="Multiple users">
+        ```json
+        {
+          "op": 2,
+          "d": {
+            "user_ids": ["123456789012345678", "234567890123456789"]
+          }
+        }
+        ```
+      </Tab>
+
+      <Tab title="All users">
+        ```json
+        {
+          "op": 2,
+          "d": {
+            "user_id": "All"
+          }
+        }
+        ```
+      </Tab>
+    </Tabs>
+  </Step>
+
+  <Step title="Receive acknowledgement">
+    The server sends Opcode 3: Initialize Acknowledgement with user data:
+
+    ```json
+    {
+      "t": "INIT_ACK",
+      "op": 3,
+      "d": {
+        "metadata": {
+          "id": "123456789012345678",
+          "username": "example",
+          "discriminator": "0",
+          "global_name": "example",
+          "avatar": "abcdef1234567890",
+          "avatar_url": "https://cdn.discordapp.com/avatars/123456789012345678/123456789012345678.webp",
+          "display_avatar_url": "https://cdn.discordapp.com/avatars/123456789012345678/123456789012345678.webp",
+          "bot": false,
+          "flags": {
+            "human_readable": ["Staff"],
+            "bitfield": 1
+          },
+          "monitoring_since": {
+            "unix": 1620000000,
+            "raw": "2021-05-03T00:00:00.000Z"
+          }
+        },
+        "active_platforms": {
+          "desktop": "online",
+          "mobile": "offline",
+          "web": "offline"
+        },
+        "activities": [],
+        "storage": {},
+        "status": "online",
+        "last_seen_at": null
+      }
+    }
+    ```
+
+    <Info>
+      If subscribing to multiple users, the `d` field will be an array of user objects.
+    </Info>
+  </Step>
+
+  <Step title="Start heartbeat interval">
+    Set up a repeating interval to send Opcode 4: Heartbeat every 30 seconds (or the interval from the Hello message):
+
+    ```json
+    {
+      "t": "HEARTBEAT",
+      "op": 4
+    }
+    ```
+
+    The server responds with Opcode 5: Heartbeat Acknowledgement:
+
+    ```json
+    {
+      "t": "HEARTBEAT_ACK",
+      "op": 5
+    }
+    ```
+
+    <Warning>
+      Missing heartbeats will cause the connection to be closed. The server checks for inactive WebSocket connections periodically.
+    </Warning>
+  </Step>
+</Steps>
+
+## Opcodes reference
+
+### Client to server opcodes
+
+Opcodes that clients can send to the server:
+
+| Opcode | Name | Description |
+| --- | --- | --- |
+| 2 | INIT | Initialize subscription to user(s) |
+| 4 | HEARTBEAT | Keep connection alive |
+| 12 | SUBSCRIBE | Add user(s) to subscription |
+| 14 | UNSUBSCRIBE | Remove user(s) from subscription |
+
+### Server to client opcodes
+
+Opcodes that the server sends to clients:
+
+| Opcode | Name | Description |
+| --- | --- | --- |
+| 1 | HELLO | Initial handshake with heartbeat interval |
+| 3 | INIT_ACK | Acknowledgement of initialization |
+| 5 | HEARTBEAT_ACK | Acknowledgement of heartbeat |
+| 6 | PRESENCE_UPDATE | User presence changed |
+| 7 | USER_LEFT | Subscribed user left the server |
+| 8 | USER_JOINED | New user joined the server |
+| 9 | DISCONNECT | Connection terminated |
+| 10 | STORAGE_UPDATE | User's KV storage updated |
+| 11 | ERROR | Error occurred |
+| 13 | SUBSCRIBE_ACK | Acknowledgement of subscription |
+| 15 | UNSUBSCRIBE_ACK | Acknowledgement of unsubscription |
+
+## Event payloads
+
+### Opcode 6: Presence update
+
+Received when a subscribed user updates their presence (status, activity, Spotify track):
+
+```json
+{
+  "t": "PRESENCE_UPDATE",
+  "op": 6,
+  "d": {
+    "metadata": {
+      "id": "123456789012345678",
+      "username": "example",
+      "global_name": "example"
+    },
+    "active_platforms": {
+      "desktop": "online",
+      "mobile": "offline",
+      "web": "offline",
+      "spotify": {
+        "track_id": "abcdef1234567890",
+        "song": "Never Gonna Give You Up",
+        "artist": "Rick Astley",
+        "album": "Whenever You Need Somebody",
+        "album_cover": "https://i.scdn.co/image/abcdef1234567890",
+        "start_time": {
+          "unix": 1620000000,
+          "raw": "2021-05-03T00:00:00.000Z"
+        },
+        "end_time": {
+          "unix": 1620000213,
+          "raw": "2021-05-03T00:03:33.000Z"
+        },
+        "time": {
+          "current_human_readable": "00:00",
+          "end_human_readable": "03:33"
+        }
+      }
+    },
+    "activities": [
+      {
+        "id": "abcdef1234567890",
+        "name": "Visual Studio Code",
+        "type": "PLAYING",
+        "state": "Editing index.ts",
+        "details": "Working on lantern",
+        "application_id": "123456789012345678",
+        "created_at": 1620000000,
+        "assets": {
+          "large_image": {
+            "hash": "abcdef1234567890",
+            "image_url": "https://cdn.discordapp.com/app-assets/123456789012345678/abcdef1234567890.png",
+            "text": "Visual Studio Code"
+          }
+        },
+        "timestamps": {
+          "start_time": {
+            "unix": 1620000000,
+            "raw": "2021-05-03T00:00:00.000Z"
+          }
+        }
+      }
+    ],
+    "storage": {},
+    "status": "online",
+    "last_seen_at": null
+  }
+}
+```
+
+### Opcode 7: User left
+
+Received when a subscribed user leaves the Lantern Discord server:
+
+```json
+{
+  "t": "USER_LEFT",
+  "op": 7,
+  "d": {
+    "user_id": "123456789012345678"
+  }
+}
+```
+
+<Info>
+  If all subscribed users leave and none remain, you'll receive Opcode 9: Disconnect instead.
+</Info>
+
+### Opcode 8: User joined
+
+Received when a new user joins the Lantern Discord server (only when subscribed to all users):
+
+```json
+{
+  "t": "USER_JOINED",
+  "op": 8,
+  "d": {
+    "metadata": {
+      "id": "234567890123456789",
+      "username": "newuser",
+      "global_name": "New User"
+    },
+    "status": "online"
+  }
+}
+```
+
+### Opcode 9: Disconnect
+
+Received when the server terminates the connection:
+
+```json
+{
+  "t": "DISCONNECT",
+  "op": 9,
+  "d": {
+    "reason": "Connection timed out."
+  }
+}
+```
+
+Common disconnect reasons:
+- `Connection timed out.` - No heartbeat received
+- `You require at least one user to be subscribed. Connection closed.` - All users unsubscribed
+- `Invalid opcode.` - Sent an invalid opcode
+- `You are not allowed to send this opcode to the server.` - Sent a server-only opcode
+
+### Opcode 10: Storage update
+
+Received when a subscribed user updates their key-value storage:
+
+```json
+{
+  "t": "STORAGE_UPDATE",
+  "op": 10,
+  "d": {
+    "location": "San Francisco, CA",
+    "website": "https://example.com",
+    "theme": "dark"
+  }
+}
+```
+
+<Note>
+  The `d` field contains all key-value pairs for the user, not just the updated ones.
+</Note>
+
+### Opcode 11: Error
+
+Received when an error occurs:
+
+```json
+{
+  "t": "ERROR",
+  "op": 11,
+  "d": "User 123456789012345678 not found."
+}
+```
+
+Common errors:
+- `User {id} not found.` - Tried to subscribe to a non-existent user
+- `You are already subscribed to all users.` - Attempted to subscribe while already subscribed to all
+- `You are already subscribed to user {id}.` - Attempted duplicate subscription
+- `You are not subscribed to user {id}.` - Attempted to unsubscribe from a non-subscribed user
+- `Invalid opcode.` - Sent an unrecognized opcode
+
+## Managing subscriptions
+
+### Subscribe to additional users
+
+Add users to your subscription after initialization:
+
+<Tabs>
+  <Tab title="Single user">
+    ```json
+    {
+      "op": 12,
+      "d": {
+        "user_id": "345678901234567890"
+      }
+    }
+    ```
+  </Tab>
+
+  <Tab title="Multiple users">
+    ```json
+    {
+      "op": 12,
+      "d": {
+        "user_ids": ["345678901234567890", "456789012345678901"]
+      }
+    }
+    ```
+  </Tab>
+
+  <Tab title="All users">
+    ```json
+    {
+      "op": 12,
+      "d": {
+        "user_id": "All"
+      }
+    }
+    ```
+  </Tab>
+</Tabs>
+
+The server responds with Opcode 13: Subscribe Acknowledgement:
+
+```json
+{
+  "t": "SUBSCRIBE_ACK",
+  "op": 13
+}
+```
+
+### Unsubscribe from users
+
+Remove users from your subscription:
+
+<Tabs>
+  <Tab title="Single user">
+    ```json
+    {
+      "op": 14,
+      "d": {
+        "user_id": "345678901234567890"
+      }
+    }
+    ```
+  </Tab>
+
+  <Tab title="Multiple users">
+    ```json
+    {
+      "op": 14,
+      "d": {
+        "user_ids": ["345678901234567890", "456789012345678901"]
+      }
+    }
+    ```
+  </Tab>
+</Tabs>
+
+The server responds with Opcode 15: Unsubscribe Acknowledgement:
+
+```json
+{
+  "t": "UNSUBSCRIBE_ACK",
+  "op": 15
+}
+```
+
+<Warning>
+  You must remain subscribed to at least one user. Unsubscribing from all users will close the connection with Opcode 9: Disconnect.
+</Warning>
+
+<Note>
+  You cannot unsubscribe from individual users if you're subscribed to "All". You must disconnect and reconnect with a specific subscription.
+</Note>
+
+## Implementation example
+
+Here's a complete JavaScript example:
+
+```javascript
+const WebSocket = require('ws');
+
+const ws = new WebSocket('wss://lantern.rest/socket');
+let heartbeatInterval;
+
+ws.on('open', () => {
+  console.log('Connected to Lantern WebSocket');
+});
+
+ws.on('message', (data) => {
+  const message = JSON.parse(data);
+  const { t, op, d } = message;
+
+  switch (op) {
+    case 1: // HELLO
+      console.log('Received HELLO, heartbeat interval:', d.heartbeat_interval);
+      
+      // Start heartbeat
+      heartbeatInterval = setInterval(() => {
+        ws.send(JSON.stringify({ op: 4, t: 'HEARTBEAT' }));
+      }, d.heartbeat_interval);
+
+      // Subscribe to user
+      ws.send(JSON.stringify({
+        op: 2,
+        d: { user_id: '123456789012345678' }
+      }));
+      break;
+
+    case 3: // INIT_ACK
+      console.log('Subscription acknowledged:', d);
+      break;
+
+    case 5: // HEARTBEAT_ACK
+      console.log('Heartbeat acknowledged');
+      break;
+
+    case 6: // PRESENCE_UPDATE
+      console.log('Presence updated:', d);
+      // Handle presence update
+      if (d.active_platforms.spotify) {
+        console.log('Now playing:', d.active_platforms.spotify.song);
+      }
+      break;
+
+    case 7: // USER_LEFT
+      console.log('User left:', d.user_id);
+      break;
+
+    case 9: // DISCONNECT
+      console.log('Disconnected:', d.reason);
+      clearInterval(heartbeatInterval);
+      break;
+
+    case 10: // STORAGE_UPDATE
+      console.log('Storage updated:', d);
+      break;
+
+    case 11: // ERROR
+      console.error('Error:', d);
+      break;
+  }
+});
+
+ws.on('close', () => {
+  console.log('Connection closed');
+  clearInterval(heartbeatInterval);
+});
+
+ws.on('error', (error) => {
+  console.error('WebSocket error:', error);
+});
+```
+
+## Configuration
+
+WebSocket server configuration from `config.toml`:
+
+```toml
+[server.socket]
+heartbeat_interval = 30000
+maxpayload = 1024
+clienttracking = true
+keepalive = true
+client_allowed_opcodes = [2, 4, 12, 14]
+
+[server.socket.opcodes]
+HELLO = 1
+INIT = 2
+INIT_ACK = 3
+HEARTBEAT = 4
+HEARTBEAT_ACK = 5
+PRESENCE_UPDATE = 6
+USER_LEFT = 7
+USER_JOINED = 8
+DISCONNECT = 9
+STORAGE_UPDATE = 10
+ERROR = 11
+SUBSCRIBE = 12
+SUBSCRIBE_ACK = 13
+UNSUBSCRIBE = 14
+UNSUBSCRIBE_ACK = 15
+```
+
+## Best practices
+
+<Accordion title="Always handle heartbeats">
+  The server expects regular heartbeats. Set up your heartbeat interval immediately after receiving the HELLO message. Missing heartbeats will cause disconnection.
+</Accordion>
+
+<Accordion title="Handle reconnection">
+  Implement automatic reconnection logic with exponential backoff. Network issues can cause disconnections, and your client should be able to recover automatically.
+</Accordion>
+
+<Accordion title="Subscribe only to needed users">
+  Don't subscribe to "All" users unless you specifically need all presence data. Subscribing to specific users reduces bandwidth and processing overhead.
+</Accordion>
+
+<Accordion title="Process messages asynchronously">
+  Message handlers should be non-blocking. If you need to perform heavy processing, queue the work separately to avoid blocking incoming messages.
+</Accordion>
+
+<Accordion title="Validate message structure">
+  Always validate that messages contain the expected fields before processing. The server may send error messages or unexpected opcodes during error conditions.
+</Accordion>

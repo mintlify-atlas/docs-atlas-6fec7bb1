@@ -1,0 +1,675 @@
+---
+title: WebSocket opcodes
+description: Complete reference for all WebSocket opcodes, payloads, and message formats
+---
+
+Opcodes define the type of message being sent between client and server. Each message includes an opcode (`op`), an optional event type (`t`), and data payload (`d`).
+
+## Opcode overview
+
+| Opcode | Name | Direction | Description |
+|--------|------|-----------|-------------|
+| 1 | HELLO | Server → Client | Initial connection handshake with heartbeat interval |
+| 2 | INIT | Client → Server | Initialize connection and subscribe to users |
+| 3 | INIT_ACK | Server → Client | Acknowledgement of initialization with user data |
+| 4 | HEARTBEAT | Client → Server | Keep-alive ping sent at regular intervals |
+| 5 | HEARTBEAT_ACK | Server → Client | Acknowledgement of heartbeat |
+| 6 | PRESENCE_UPDATE | Server → Client | User presence or activity changed |
+| 7 | USER_LEFT | Server → Client | User left the Lantern server |
+| 8 | USER_JOINED | Server → Client | New user joined the Lantern server |
+| 9 | DISCONNECT | Server → Client | Connection closing with reason |
+| 10 | STORAGE_UPDATE | Server → Client | Key-value storage modified |
+| 11 | ERROR | Server → Client | Error occurred during operation |
+| 12 | SUBSCRIBE | Client → Server | Add users to subscription |
+| 13 | SUBSCRIBE_ACK | Server → Client | Acknowledgement of subscription |
+| 14 | UNSUBSCRIBE | Client → Server | Remove users from subscription |
+| 15 | UNSUBSCRIBE_ACK | Server → Client | Acknowledgement of unsubscription |
+
+## Server to client opcodes
+
+### Opcode 1: HELLO
+
+Sent immediately after connecting. Contains the heartbeat interval required to keep the connection alive.
+
+<ParamField path="op" type="number" required>
+  Always `1` for HELLO messages
+</ParamField>
+
+<ParamField path="t" type="string" required>
+  Always `"HELLO"`
+</ParamField>
+
+<ParamField path="d" type="object" required>
+  Data payload containing connection parameters
+</ParamField>
+
+<ParamField path="d.heartbeat_interval" type="number" required>
+  Milliseconds between heartbeat messages (typically `10000`)
+</ParamField>
+
+#### Example payload
+
+```json
+{
+  "t": "HELLO",
+  "op": 1,
+  "d": {
+    "heartbeat_interval": 10000
+  }
+}
+```
+
+<Note>
+  Store the `heartbeat_interval` value and use it to set up a recurring heartbeat timer.
+</Note>
+
+### Opcode 3: INIT_ACK
+
+Acknowledges successful initialization and provides current data for all subscribed users.
+
+<ParamField path="op" type="number" required>
+  Always `3` for INIT_ACK messages
+</ParamField>
+
+<ParamField path="t" type="string" required>
+  Always `"INIT_ACK"`
+</ParamField>
+
+<ParamField path="d" type="object | array" required>
+  User data object for single subscription, or array of user objects for multiple subscriptions
+</ParamField>
+
+#### Example payload
+
+```json
+{
+  "t": "INIT_ACK",
+  "op": 3,
+  "d": {
+    "metadata": {
+      "id": "123456789012345678",
+      "username": "example",
+      "discriminator": "0",
+      "global_name": "example",
+      "avatar": "abcdef1234567890",
+      "avatar_url": "https://cdn.discordapp.com/avatars/123456789012345678/123456789012345678.webp",
+      "display_avatar_url": "https://cdn.discordapp.com/avatars/123456789012345678/123456789012345678.webp",
+      "bot": false,
+      "flags": {
+        "human_readable": ["Staff"],
+        "bitfield": 1
+      },
+      "monitoring_since": {
+        "unix": 1620000000,
+        "raw": "2021-05-03T00:00:00.000Z"
+      }
+    },
+    "active_platforms": {
+      "desktop": "online",
+      "mobile": "offline",
+      "web": "offline",
+      "spotify": {
+        "track_id": "abcdef1234567890",
+        "song": "example",
+        "artist": "example",
+        "album": "example",
+        "album_cover": "https://i.scdn.co/image/abcdef1234567890",
+        "start_time": {
+          "unix": 1620000000,
+          "raw": "2021-05-03T00:00:00.000Z"
+        },
+        "end_time": {
+          "unix": 1620000000,
+          "raw": "2021-05-03T00:00:00.000Z"
+        },
+        "time": {
+          "current_human_readable": "00:00",
+          "end_human_readable": "00:00"
+        }
+      }
+    },
+    "activities": [
+      {
+        "id": "abcdef1234567890",
+        "name": "example",
+        "type": "PLAYING",
+        "state": "example",
+        "details": "example",
+        "application_id": "123456789012345678",
+        "created_at": 1620000000,
+        "assets": {
+          "large_image": {
+            "hash": "abcdef1234567890",
+            "image_url": "https://cdn.discordapp.com/app-assets/123456789012345678/abcdef1234567890.png",
+            "text": "example"
+          },
+          "small_image": {
+            "hash": "abcdef1234567890",
+            "image_url": "https://cdn.discordapp.com/app-assets/123456789012345678/abcdef1234567890.png",
+            "text": "example"
+          }
+        },
+        "timestamps": {
+          "start_time": {
+            "unix": 1620000000,
+            "raw": "2021-05-03T00:00:00.000Z"
+          }
+        }
+      }
+    ],
+    "storage": {
+      "key": "value"
+    },
+    "server_tag": {
+      "guild_id": "987654321098765432",
+      "name": "GGEZ",
+      "icon_url": "https://cdn.discordapp.com/guild-tag-badges/1234567890123456789/abcdef1234567890.webp"
+    },
+    "status": "online",
+    "last_seen_at": null
+  }
+}
+```
+
+<Info>
+  When subscribed to multiple users, `d` will be an array of user objects instead of a single object.
+</Info>
+
+### Opcode 5: HEARTBEAT_ACK
+
+Acknowledges receipt of a heartbeat message.
+
+<ParamField path="op" type="number" required>
+  Always `5` for HEARTBEAT_ACK messages
+</ParamField>
+
+<ParamField path="t" type="string" required>
+  Always `"HEARTBEAT_ACK"`
+</ParamField>
+
+#### Example payload
+
+```json
+{
+  "t": "HEARTBEAT_ACK",
+  "op": 5
+}
+```
+
+### Opcode 6: PRESENCE_UPDATE
+
+Sent when a subscribed user's presence, activity, or status changes.
+
+<ParamField path="op" type="number" required>
+  Always `6` for PRESENCE_UPDATE messages
+</ParamField>
+
+<ParamField path="t" type="string" required>
+  Always `"PRESENCE_UPDATE"`
+</ParamField>
+
+<ParamField path="d" type="object | array" required>
+  Updated user data object, or array of user objects for multiple subscriptions
+</ParamField>
+
+#### Example payload
+
+```json
+{
+  "t": "PRESENCE_UPDATE",
+  "op": 6,
+  "d": {
+    "metadata": {
+      "id": "123456789012345678",
+      "username": "example",
+      "global_name": "example"
+    },
+    "active_platforms": {
+      "desktop": "idle",
+      "mobile": "offline",
+      "web": "offline"
+    },
+    "activities": [],
+    "status": "idle",
+    "last_seen_at": null
+  }
+}
+```
+
+<Note>
+  The payload structure is identical to user data from the REST API. Only changed fields may be included in some implementations.
+</Note>
+
+### Opcode 7: USER_LEFT
+
+Sent when a subscribed user leaves the Lantern Discord server.
+
+<ParamField path="op" type="number" required>
+  Always `7` for USER_LEFT messages
+</ParamField>
+
+<ParamField path="t" type="string" required>
+  Always `"USER_LEFT"`
+</ParamField>
+
+<ParamField path="d" type="object" required>
+  Data containing the user ID
+</ParamField>
+
+<ParamField path="d.user_id" type="string" required>
+  Discord ID of the user who left
+</ParamField>
+
+#### Example payload
+
+```json
+{
+  "t": "USER_LEFT",
+  "op": 7,
+  "d": {
+    "user_id": "123456789012345678"
+  }
+}
+```
+
+<Warning>
+  If you're subscribed to multiple users and they all leave, you'll receive a USER_LEFT for each, followed by `Opcode 9: DISCONNECT`.
+</Warning>
+
+### Opcode 8: USER_JOINED
+
+Sent when a new user joins the Lantern Discord server (only if you're subscribed to all users).
+
+<ParamField path="op" type="number" required>
+  Always `8` for USER_JOINED messages
+</ParamField>
+
+<ParamField path="t" type="string" required>
+  Always `"USER_JOINED"`
+</ParamField>
+
+<ParamField path="d" type="object" required>
+  Complete user data object for the new user
+</ParamField>
+
+#### Example payload
+
+```json
+{
+  "t": "USER_JOINED",
+  "op": 8,
+  "d": {
+    "metadata": {
+      "id": "234567890123456789",
+      "username": "newuser",
+      "global_name": "New User"
+    },
+    "active_platforms": {
+      "desktop": "online",
+      "mobile": "offline",
+      "web": "offline"
+    },
+    "activities": [],
+    "status": "online",
+    "last_seen_at": null
+  }
+}
+```
+
+### Opcode 9: DISCONNECT
+
+Sent before the server closes the connection, providing a reason for disconnection.
+
+<ParamField path="op" type="number" required>
+  Always `9` for DISCONNECT messages
+</ParamField>
+
+<ParamField path="t" type="string" required>
+  Always `"DISCONNECT"`
+</ParamField>
+
+<ParamField path="d" type="object" required>
+  Data containing the disconnect reason
+</ParamField>
+
+<ParamField path="d.reason" type="string" required>
+  Human-readable explanation for disconnection
+</ParamField>
+
+#### Example payload
+
+```json
+{
+  "t": "DISCONNECT",
+  "op": 9,
+  "d": {
+    "reason": "Connection timed out."
+  }
+}
+```
+
+#### Common disconnect reasons
+
+- `"Connection timed out."` - No heartbeats received within expected interval
+- `"All subscribed users removed."` - Unsubscribed from all users
+- `"Invalid initialization payload."` - Malformed INIT message
+
+### Opcode 10: STORAGE_UPDATE
+
+Sent when key-value storage is created, updated, or deleted for a subscribed user.
+
+<ParamField path="op" type="number" required>
+  Always `10` for STORAGE_UPDATE messages
+</ParamField>
+
+<ParamField path="t" type="string" required>
+  Always `"STORAGE_UPDATE"`
+</ParamField>
+
+<ParamField path="d" type="object" required>
+  Object containing all current key-value pairs for the user
+</ParamField>
+
+#### Example payload
+
+```json
+{
+  "t": "STORAGE_UPDATE",
+  "op": 10,
+  "d": {
+    "theme": "dark",
+    "location": "San Francisco",
+    "website": "https://example.com"
+  }
+}
+```
+
+<Note>
+  The payload contains the complete current state of storage, not just the changed keys.
+</Note>
+
+### Opcode 11: ERROR
+
+Sent when an error occurs during processing of a client message.
+
+<ParamField path="op" type="number" required>
+  Always `11` for ERROR messages
+</ParamField>
+
+<ParamField path="t" type="string" required>
+  Always `"ERROR"`
+</ParamField>
+
+<ParamField path="d" type="string" required>
+  Error message describing what went wrong
+</ParamField>
+
+#### Example payload
+
+```json
+{
+  "t": "ERROR",
+  "op": 11,
+  "d": "Something went wrong."
+}
+```
+
+### Opcode 13: SUBSCRIBE_ACK
+
+Acknowledges successful subscription to additional users.
+
+<ParamField path="op" type="number" required>
+  Always `13` for SUBSCRIBE_ACK messages
+</ParamField>
+
+<ParamField path="t" type="string" required>
+  Always `"SUBSCRIBE_ACK"`
+</ParamField>
+
+#### Example payload
+
+```json
+{
+  "t": "SUBSCRIBE_ACK",
+  "op": 13
+}
+```
+
+### Opcode 15: UNSUBSCRIBE_ACK
+
+Acknowledges successful unsubscription from users.
+
+<ParamField path="op" type="number" required>
+  Always `15` for UNSUBSCRIBE_ACK messages
+</ParamField>
+
+<ParamField path="t" type="string" required>
+  Always `"UNSUBSCRIBE_ACK"`
+</ParamField>
+
+#### Example payload
+
+```json
+{
+  "t": "UNSUBSCRIBE_ACK",
+  "op": 15
+}
+```
+
+## Client to server opcodes
+
+### Opcode 2: INIT
+
+Initialize the connection and subscribe to user updates. Must be sent immediately after receiving HELLO.
+
+<ParamField path="op" type="number" required>
+  Always `2` for INIT messages
+</ParamField>
+
+<ParamField path="d" type="object" required>
+  Subscription data
+</ParamField>
+
+<ParamField path="d.user_id" type="string">
+  Single Discord user ID to subscribe to, or `"All"` for all users. Mutually exclusive with `user_ids`.
+</ParamField>
+
+<ParamField path="d.user_ids" type="array">
+  Array of Discord user IDs to subscribe to. Mutually exclusive with `user_id`.
+</ParamField>
+
+#### Example payloads
+
+<CodeGroup>
+```json Single user
+{
+  "op": 2,
+  "d": {
+    "user_id": "123456789012345678"
+  }
+}
+```
+
+```json Multiple users
+{
+  "op": 2,
+  "d": {
+    "user_ids": ["123456789012345678", "234567890123456789"]
+  }
+}
+```
+
+```json All users
+{
+  "op": 2,
+  "d": {
+    "user_id": "All"
+  }
+}
+```
+</CodeGroup>
+
+<Warning>
+  Send INIT immediately after receiving HELLO. Delaying initialization may result in connection timeout.
+</Warning>
+
+### Opcode 4: HEARTBEAT
+
+Keep-alive message that must be sent at the interval specified in HELLO.
+
+<ParamField path="op" type="number" required>
+  Always `4` for HEARTBEAT messages
+</ParamField>
+
+<ParamField path="t" type="string" required>
+  Always `"HEARTBEAT"`
+</ParamField>
+
+#### Example payload
+
+```json
+{
+  "t": "HEARTBEAT",
+  "op": 4
+}
+```
+
+<Warning>
+  Missing multiple consecutive heartbeats will result in disconnection.
+</Warning>
+
+### Opcode 12: SUBSCRIBE
+
+Add additional users to your subscription after the initial connection.
+
+<ParamField path="op" type="number" required>
+  Always `12` for SUBSCRIBE messages
+</ParamField>
+
+<ParamField path="d" type="object" required>
+  Subscription data
+</ParamField>
+
+<ParamField path="d.user_id" type="string">
+  Single Discord user ID to subscribe to, or `"All"` for all users. Mutually exclusive with `user_ids`.
+</ParamField>
+
+<ParamField path="d.user_ids" type="array">
+  Array of Discord user IDs to subscribe to. Mutually exclusive with `user_id`.
+</ParamField>
+
+#### Example payloads
+
+<CodeGroup>
+```json Single user
+{
+  "op": 12,
+  "d": {
+    "user_id": "345678901234567890"
+  }
+}
+```
+
+```json Multiple users
+{
+  "op": 12,
+  "d": {
+    "user_ids": ["345678901234567890", "456789012345678901"]
+  }
+}
+```
+
+```json All users
+{
+  "op": 12,
+  "d": {
+    "user_id": "All"
+  }
+}
+```
+</CodeGroup>
+
+### Opcode 14: UNSUBSCRIBE
+
+Remove users from your subscription.
+
+<ParamField path="op" type="number" required>
+  Always `14` for UNSUBSCRIBE messages
+</ParamField>
+
+<ParamField path="d" type="object" required>
+  Unsubscription data
+</ParamField>
+
+<ParamField path="d.user_id" type="string">
+  Single Discord user ID to unsubscribe from, or `"All"` to unsubscribe from all users. Mutually exclusive with `user_ids`.
+</ParamField>
+
+<ParamField path="d.user_ids" type="array">
+  Array of Discord user IDs to unsubscribe from. Mutually exclusive with `user_id`.
+</ParamField>
+
+#### Example payloads
+
+<CodeGroup>
+```json Single user
+{
+  "op": 14,
+  "d": {
+    "user_id": "123456789012345678"
+  }
+}
+```
+
+```json Multiple users
+{
+  "op": 14,
+  "d": {
+    "user_ids": ["123456789012345678", "234567890123456789"]
+  }
+}
+```
+
+```json All users
+{
+  "op": 14,
+  "d": {
+    "user_id": "All"
+  }
+}
+```
+</CodeGroup>
+
+<Warning>
+  Unsubscribing from all users will trigger `Opcode 9: DISCONNECT` and close the connection.
+</Warning>
+
+## Message structure
+
+All WebSocket messages follow a consistent JSON structure:
+
+<ParamField path="op" type="number" required>
+  Opcode identifying the message type (1-15)
+</ParamField>
+
+<ParamField path="t" type="string">
+  Event type name (e.g., `"HELLO"`, `"PRESENCE_UPDATE"`). Present in most server messages.
+</ParamField>
+
+<ParamField path="d" type="any">
+  Data payload. Type varies by opcode - can be object, array, string, or omitted.
+</ParamField>
+
+### Example message
+
+```json
+{
+  "t": "PRESENCE_UPDATE",
+  "op": 6,
+  "d": {
+    "metadata": { /* user metadata */ },
+    "status": "online",
+    "activities": [ /* user activities */ ]
+  }
+}
+```

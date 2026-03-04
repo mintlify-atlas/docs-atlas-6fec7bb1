@@ -1,0 +1,104 @@
+---
+title: API overview
+description: Learn about the Lantern REST API, including base URL, authentication, and rate limits
+---
+
+## Base URL
+
+All API requests should be made to:
+
+```
+https://lantern.rest/api/v1
+```
+
+## Authentication
+
+Most endpoints in the Lantern API are publicly accessible and do not require authentication. However, write operations to the KV storage system require authentication via an API key.
+
+### Getting an API key
+
+To access authenticated endpoints, you need to generate a token using the Lantern Discord bot:
+
+1. Join the Lantern Discord server
+2. Use the `/storage create token` command
+3. The bot will provide you with a unique token
+
+### Using the API key
+
+Include your API key in the `Authorization` header of your requests:
+
+```bash
+curl -X PUT https://lantern.rest/api/v1/users/123456789012345678/storage/mykey \
+  -H "Authorization: your-api-token-here" \
+  -H "Content-Type: application/json" \
+  -d '{"value":"myvalue"}'
+```
+
+<Warning>
+Keep your API token secure. Anyone with access to your token can modify your KV storage data.
+</Warning>
+
+## Rate limits
+
+The API implements rate limiting to ensure fair usage:
+
+- Bulk user requests are limited to 50 users per request
+- Rate limits are enforced per IP address
+- Requests exceeding rate limits will receive appropriate error responses
+
+## Response format
+
+All API responses are returned in JSON format with appropriate HTTP status codes:
+
+- `200` - Success
+- `400` - Bad request (invalid parameters)
+- `401` - Unauthorized (missing or invalid API key)
+- `404` - Not found (resource doesn't exist)
+- `500` - Internal server error
+
+### Error responses
+
+Error responses follow a consistent format:
+
+```json
+{
+  "error": "Description of the error"
+}
+```
+
+### Success responses
+
+Success responses vary by endpoint but generally return either:
+
+- The requested data (for GET requests)
+- A success confirmation (for PUT, PATCH, DELETE requests)
+
+```json
+{
+  "success": true
+}
+```
+
+## User monitoring
+
+<Note>
+Users must be monitored by the Lantern system before their data is available through the API. Users are monitored when they join the Lantern Discord server.
+</Note>
+
+If you request data for a user that is not being monitored, you'll receive a 404 error:
+
+```json
+{
+  "error": "User {id} is not being monitored by Lantern."
+}
+```
+
+## OpenAPI specification
+
+The complete OpenAPI specification is available at:
+
+```
+https://lantern.rest/docs
+```
+
+You can also view the [swagger.json](https://github.com/discordplace/lantern/blob/main/swagger.json) file in the repository.

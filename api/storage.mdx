@@ -1,0 +1,621 @@
+---
+title: Storage endpoints
+description: Manage key-value storage for monitored users
+---
+
+The Lantern KV storage system provides a simple key-value store that can be accessed through the REST API. You can use it to store configuration values, dynamic data, user preferences, and temporary data.
+
+## Storage limits
+
+<Note>
+- Keys and values can only be strings (you can store JSON objects as strings)
+- Values: Maximum 30,000 characters
+- Keys: Alphanumeric only (a-z, A-Z, 0-9), maximum 255 characters
+- Maximum 512 key-value pairs per user
+</Note>
+
+## Authentication requirements
+
+<Warning>
+Write operations (PUT, PATCH, DELETE) require authentication via the `Authorization` header. Read operations (GET) are public.
+</Warning>
+
+To get an API token:
+1. Join the Lantern Discord server
+2. Use the `/storage create token` command
+3. Include the token in the `Authorization` header
+
+---
+
+## Get all storage for user
+
+<CodeGroup>
+```bash cURL
+curl "https://lantern.rest/api/v1/users/123456789012345678/storage"
+```
+
+```javascript JavaScript
+const response = await fetch(
+  'https://lantern.rest/api/v1/users/123456789012345678/storage'
+);
+const storage = await response.json();
+```
+
+```python Python
+import requests
+
+response = requests.get(
+    'https://lantern.rest/api/v1/users/123456789012345678/storage'
+)
+storage = response.json()
+```
+</CodeGroup>
+
+### Path parameters
+
+<ParamField path="id" type="string" required>
+  The Discord user ID to fetch storage data for
+  
+  **Validation:**
+  - Must be numeric
+  - Length: 17-19 characters
+  - Pattern: `^[0-9]{17,19}$`
+</ParamField>
+
+### Response
+
+Returns a JSON object containing all key-value pairs for the user:
+
+```json
+{
+  "key1": "value1",
+  "key2": "value2",
+  "config": "{\"theme\":\"dark\",\"notifications\":true}"
+}
+```
+
+### Error responses
+
+<Accordion title="404 - User not monitored">
+  ```json
+  {
+    "error": "User 123456789012345678 is not being monitored by Lantern."
+  }
+  ```
+</Accordion>
+
+<Accordion title="404 - No storage">
+  ```json
+  {
+    "error": "User 123456789012345678 does not have any storage."
+  }
+  ```
+</Accordion>
+
+---
+
+## Delete all storage for user
+
+<Warning>
+This endpoint requires authentication.
+</Warning>
+
+<CodeGroup>
+```bash cURL
+curl -X DELETE "https://lantern.rest/api/v1/users/123456789012345678/storage" \
+  -H "Authorization: your-api-token-here"
+```
+
+```javascript JavaScript
+const response = await fetch(
+  'https://lantern.rest/api/v1/users/123456789012345678/storage',
+  {
+    method: 'DELETE',
+    headers: {
+      'Authorization': 'your-api-token-here'
+    }
+  }
+);
+const result = await response.json();
+```
+
+```python Python
+import requests
+
+response = requests.delete(
+    'https://lantern.rest/api/v1/users/123456789012345678/storage',
+    headers={'Authorization': 'your-api-token-here'}
+)
+result = response.json()
+```
+</CodeGroup>
+
+### Path parameters
+
+<ParamField path="id" type="string" required>
+  The Discord user ID to delete storage data for
+  
+  **Validation:**
+  - Must be numeric
+  - Length: 17-19 characters
+  - Pattern: `^[0-9]{17,19}$`
+</ParamField>
+
+### Headers
+
+<ParamField header="Authorization" type="string" required>
+  Your KV storage API token from the Lantern bot
+</ParamField>
+
+### Response
+
+```json
+{
+  "success": true
+}
+```
+
+### Error responses
+
+<Accordion title="401 - Unauthorized">
+  ```json
+  {
+    "error": "Unauthorized."
+  }
+  ```
+</Accordion>
+
+<Accordion title="404 - User not monitored">
+  ```json
+  {
+    "error": "User 123456789012345678 is not being monitored by Lantern."
+  }
+  ```
+</Accordion>
+
+<Accordion title="404 - No storage">
+  ```json
+  {
+    "error": "User 123456789012345678 does not have any storage."
+  }
+  ```
+</Accordion>
+
+---
+
+## Get storage value by key
+
+<CodeGroup>
+```bash cURL
+curl "https://lantern.rest/api/v1/users/123456789012345678/storage/mykey"
+```
+
+```javascript JavaScript
+const response = await fetch(
+  'https://lantern.rest/api/v1/users/123456789012345678/storage/mykey'
+);
+const data = await response.json();
+console.log(data.value);
+```
+
+```python Python
+import requests
+
+response = requests.get(
+    'https://lantern.rest/api/v1/users/123456789012345678/storage/mykey'
+)
+value = response.json()['value']
+```
+</CodeGroup>
+
+### Path parameters
+
+<ParamField path="id" type="string" required>
+  The Discord user ID to fetch storage data for
+  
+  **Validation:**
+  - Must be numeric
+  - Length: 17-19 characters
+  - Pattern: `^[0-9]{17,19}$`
+</ParamField>
+
+<ParamField path="key" type="string" required>
+  The storage key to retrieve the value for
+  
+  **Validation:**
+  - Alphanumeric only: `^[a-zA-Z0-9]+$`
+  - Length: 1-255 characters
+</ParamField>
+
+### Response
+
+```json
+{
+  "value": "example_value"
+}
+```
+
+### Error responses
+
+<Accordion title="404 - User not monitored">
+  ```json
+  {
+    "error": "User 123456789012345678 is not being monitored by Lantern."
+  }
+  ```
+</Accordion>
+
+<Accordion title="404 - No storage">
+  ```json
+  {
+    "error": "User 123456789012345678 does not have any storage."
+  }
+  ```
+</Accordion>
+
+<Accordion title="404 - Key not found">
+  ```json
+  {
+    "error": "Key mykey does not exist in the storage."
+  }
+  ```
+</Accordion>
+
+---
+
+## Create storage key-value pair
+
+<Warning>
+This endpoint requires authentication.
+</Warning>
+
+<CodeGroup>
+```bash cURL
+curl -X PUT "https://lantern.rest/api/v1/users/123456789012345678/storage/mykey" \
+  -H "Authorization: your-api-token-here" \
+  -H "Content-Type: application/json" \
+  -d '{"value":"myvalue"}'
+```
+
+```javascript JavaScript
+const response = await fetch(
+  'https://lantern.rest/api/v1/users/123456789012345678/storage/mykey',
+  {
+    method: 'PUT',
+    headers: {
+      'Authorization': 'your-api-token-here',
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ value: 'myvalue' })
+  }
+);
+const result = await response.json();
+```
+
+```python Python
+import requests
+
+response = requests.put(
+    'https://lantern.rest/api/v1/users/123456789012345678/storage/mykey',
+    headers={
+        'Authorization': 'your-api-token-here',
+        'Content-Type': 'application/json'
+    },
+    json={'value': 'myvalue'}
+)
+result = response.json()
+```
+</CodeGroup>
+
+### Path parameters
+
+<ParamField path="id" type="string" required>
+  The Discord user ID to create storage data for
+  
+  **Validation:**
+  - Must be numeric
+  - Length: 17-19 characters
+  - Pattern: `^[0-9]{17,19}$`
+</ParamField>
+
+<ParamField path="key" type="string" required>
+  The storage key to create
+  
+  **Validation:**
+  - Alphanumeric only: `^[a-zA-Z0-9]+$`
+  - Length: 1-255 characters
+</ParamField>
+
+### Headers
+
+<ParamField header="Authorization" type="string" required>
+  Your KV storage API token from the Lantern bot
+</ParamField>
+
+### Body parameters
+
+<ParamField body="value" type="string" required>
+  The value to assign to the key
+  
+  **Validation:**
+  - Minimum length: 1 character
+  - Maximum length: 30,000 characters
+</ParamField>
+
+### Response
+
+```json
+{
+  "success": true
+}
+```
+
+### Error responses
+
+<Accordion title="401 - Unauthorized">
+  ```json
+  {
+    "error": "Unauthorized."
+  }
+  ```
+</Accordion>
+
+<Accordion title="404 - User not monitored">
+  ```json
+  {
+    "error": "User 123456789012345678 is not being monitored by Lantern."
+  }
+  ```
+</Accordion>
+
+<Accordion title="400 - Key too long">
+  ```json
+  {
+    "error": "Key must be between 1 and 255 characters long."
+  }
+  ```
+</Accordion>
+
+<Accordion title="400 - Value too long">
+  ```json
+  {
+    "error": "Value must be between 1 and 30000 characters long."
+  }
+  ```
+</Accordion>
+
+---
+
+## Update storage key-value pair
+
+<Warning>
+This endpoint requires authentication.
+</Warning>
+
+<CodeGroup>
+```bash cURL
+curl -X PATCH "https://lantern.rest/api/v1/users/123456789012345678/storage/mykey" \
+  -H "Authorization: your-api-token-here" \
+  -H "Content-Type: application/json" \
+  -d '{"value":"updated_value"}'
+```
+
+```javascript JavaScript
+const response = await fetch(
+  'https://lantern.rest/api/v1/users/123456789012345678/storage/mykey',
+  {
+    method: 'PATCH',
+    headers: {
+      'Authorization': 'your-api-token-here',
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ value: 'updated_value' })
+  }
+);
+const result = await response.json();
+```
+
+```python Python
+import requests
+
+response = requests.patch(
+    'https://lantern.rest/api/v1/users/123456789012345678/storage/mykey',
+    headers={
+        'Authorization': 'your-api-token-here',
+        'Content-Type': 'application/json'
+    },
+    json={'value': 'updated_value'}
+)
+result = response.json()
+```
+</CodeGroup>
+
+### Path parameters
+
+<ParamField path="id" type="string" required>
+  The Discord user ID to update storage data for
+  
+  **Validation:**
+  - Must be numeric
+  - Length: 17-19 characters
+  - Pattern: `^[0-9]{17,19}$`
+</ParamField>
+
+<ParamField path="key" type="string" required>
+  The storage key to update
+  
+  **Validation:**
+  - Alphanumeric only: `^[a-zA-Z0-9]+$`
+  - Length: 1-255 characters
+</ParamField>
+
+### Headers
+
+<ParamField header="Authorization" type="string" required>
+  Your KV storage API token from the Lantern bot
+</ParamField>
+
+### Body parameters
+
+<ParamField body="value" type="string" required>
+  The new value to assign to the key
+  
+  **Validation:**
+  - Minimum length: 1 character
+  - Maximum length: 30,000 characters
+</ParamField>
+
+### Response
+
+```json
+{
+  "success": true
+}
+```
+
+### Error responses
+
+<Accordion title="401 - Unauthorized">
+  ```json
+  {
+    "error": "Unauthorized."
+  }
+  ```
+</Accordion>
+
+<Accordion title="404 - User not monitored">
+  ```json
+  {
+    "error": "User 123456789012345678 is not being monitored by Lantern."
+  }
+  ```
+</Accordion>
+
+<Accordion title="404 - Key not found">
+  ```json
+  {
+    "error": "Key mykey does not exist in the storage."
+  }
+  ```
+</Accordion>
+
+<Accordion title="400 - Key too long">
+  ```json
+  {
+    "error": "Key must be between 1 and 255 characters long."
+  }
+  ```
+</Accordion>
+
+<Accordion title="400 - Value too long">
+  ```json
+  {
+    "error": "Value must be between 1 and 30000 characters long."
+  }
+  ```
+</Accordion>
+
+---
+
+## Delete storage key-value pair
+
+<Warning>
+This endpoint requires authentication.
+</Warning>
+
+<CodeGroup>
+```bash cURL
+curl -X DELETE "https://lantern.rest/api/v1/users/123456789012345678/storage/mykey" \
+  -H "Authorization: your-api-token-here"
+```
+
+```javascript JavaScript
+const response = await fetch(
+  'https://lantern.rest/api/v1/users/123456789012345678/storage/mykey',
+  {
+    method: 'DELETE',
+    headers: {
+      'Authorization': 'your-api-token-here'
+    }
+  }
+);
+const result = await response.json();
+```
+
+```python Python
+import requests
+
+response = requests.delete(
+    'https://lantern.rest/api/v1/users/123456789012345678/storage/mykey',
+    headers={'Authorization': 'your-api-token-here'}
+)
+result = response.json()
+```
+</CodeGroup>
+
+### Path parameters
+
+<ParamField path="id" type="string" required>
+  The Discord user ID to delete storage data for
+  
+  **Validation:**
+  - Must be numeric
+  - Length: 17-19 characters
+  - Pattern: `^[0-9]{17,19}$`
+</ParamField>
+
+<ParamField path="key" type="string" required>
+  The storage key to delete
+  
+  **Validation:**
+  - Alphanumeric only: `^[a-zA-Z0-9]+$`
+  - Length: 1-255 characters
+</ParamField>
+
+### Headers
+
+<ParamField header="Authorization" type="string" required>
+  Your KV storage API token from the Lantern bot
+</ParamField>
+
+### Response
+
+```json
+{
+  "success": true
+}
+```
+
+### Error responses
+
+<Accordion title="401 - Unauthorized">
+  ```json
+  {
+    "error": "Unauthorized."
+  }
+  ```
+</Accordion>
+
+<Accordion title="404 - User not monitored">
+  ```json
+  {
+    "error": "User 123456789012345678 is not being monitored by Lantern."
+  }
+  ```
+</Accordion>
+
+<Accordion title="404 - No storage">
+  ```json
+  {
+    "error": "User 123456789012345678 does not have any storage."
+  }
+  ```
+</Accordion>
+
+<Accordion title="404 - Key not found">
+  ```json
+  {
+    "error": "Key mykey does not exist in the storage."
+  }
+  ```
+</Accordion>

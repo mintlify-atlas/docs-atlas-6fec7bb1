@@ -1,0 +1,432 @@
+---
+title: User endpoints
+description: Retrieve Discord user presence data and activity information
+---
+
+## Get users by IDs
+
+<CodeGroup>
+```bash cURL
+curl "https://lantern.rest/api/v1/users?user_ids=123456789012345678&user_ids=234567890123456789"
+```
+
+```javascript JavaScript
+const response = await fetch(
+  'https://lantern.rest/api/v1/users?user_ids=123456789012345678&user_ids=234567890123456789'
+);
+const users = await response.json();
+```
+
+```python Python
+import requests
+
+response = requests.get(
+    'https://lantern.rest/api/v1/users',
+    params={'user_ids': ['123456789012345678', '234567890123456789']}
+)
+users = response.json()
+```
+</CodeGroup>
+
+<ParamField query="user_ids" type="array" required>
+  An array of user IDs to fetch data for. Each ID must be a string of 17-19 characters, and there must be no duplicates.
+  
+  **Validation rules:**
+  - Minimum 1 item
+  - Maximum 50 items
+  - Must be unique (no duplicates)
+  - Each ID: 17-19 characters, numeric only
+  - Pattern: `^[0-9]{17,19}$`
+</ParamField>
+
+<Note>
+Include the `user_ids` parameter multiple times for each user ID you want to retrieve. For example: `?user_ids=ID1&user_ids=ID2`
+</Note>
+
+### Response
+
+<ResponseField name="metadata" type="object">
+  User metadata including Discord profile information
+  
+  <Expandable title="properties">
+    <ResponseField name="id" type="string">
+      Discord user ID
+    </ResponseField>
+    
+    <ResponseField name="username" type="string">
+      Discord username
+    </ResponseField>
+    
+    <ResponseField name="discriminator" type="string">
+      Discord discriminator (0 for new username system)
+    </ResponseField>
+    
+    <ResponseField name="global_name" type="string">
+      User's display name
+    </ResponseField>
+    
+    <ResponseField name="avatar" type="string">
+      Avatar hash
+    </ResponseField>
+    
+    <ResponseField name="avatar_url" type="string">
+      Full URL to user's avatar
+    </ResponseField>
+    
+    <ResponseField name="display_avatar_url" type="string">
+      URL to the avatar displayed in the UI
+    </ResponseField>
+    
+    <ResponseField name="bot" type="boolean">
+      Whether the user is a bot
+    </ResponseField>
+    
+    <ResponseField name="flags" type="object">
+      User badges and flags
+      
+      <Expandable title="properties">
+        <ResponseField name="human_readable" type="array">
+          Array of badge names (e.g., ["Staff", "Early Supporter"])
+        </ResponseField>
+        
+        <ResponseField name="bitfield" type="number">
+          Bitfield representation of flags
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    
+    <ResponseField name="monitoring_since" type="object">
+      When the user started being monitored
+      
+      <Expandable title="properties">
+        <ResponseField name="unix" type="number">
+          Unix timestamp
+        </ResponseField>
+        
+        <ResponseField name="raw" type="string">
+          ISO 8601 date string
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="active_platforms" type="object">
+  User's active platforms and status
+  
+  <Expandable title="properties">
+    <ResponseField name="desktop" type="string">
+      Desktop status (online/idle/dnd/offline)
+    </ResponseField>
+    
+    <ResponseField name="mobile" type="string">
+      Mobile status (online/idle/dnd/offline)
+    </ResponseField>
+    
+    <ResponseField name="web" type="string">
+      Web status (online/idle/dnd/offline)
+    </ResponseField>
+    
+    <ResponseField name="spotify" type="object" optional>
+      Current Spotify activity if listening
+      
+      <Expandable title="properties">
+        <ResponseField name="track_id" type="string">
+          Spotify track ID
+        </ResponseField>
+        
+        <ResponseField name="song" type="string">
+          Song name
+        </ResponseField>
+        
+        <ResponseField name="artist" type="string">
+          Artist name
+        </ResponseField>
+        
+        <ResponseField name="album" type="string">
+          Album name
+        </ResponseField>
+        
+        <ResponseField name="album_cover" type="string">
+          URL to album cover image
+        </ResponseField>
+        
+        <ResponseField name="start_time" type="object">
+          When the track started playing
+        </ResponseField>
+        
+        <ResponseField name="end_time" type="object">
+          When the track will end
+        </ResponseField>
+        
+        <ResponseField name="time" type="object">
+          Human-readable time information
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="activities" type="array">
+  Array of user activities (games, custom status, etc.)
+  
+  <Expandable title="activity object">
+    <ResponseField name="id" type="string">
+      Activity ID
+    </ResponseField>
+    
+    <ResponseField name="name" type="string">
+      Activity name
+    </ResponseField>
+    
+    <ResponseField name="type" type="string">
+      Activity type (PLAYING, STREAMING, LISTENING, WATCHING, CUSTOM, COMPETING)
+    </ResponseField>
+    
+    <ResponseField name="state" type="string" optional>
+      Activity state
+    </ResponseField>
+    
+    <ResponseField name="details" type="string" optional>
+      Activity details
+    </ResponseField>
+    
+    <ResponseField name="application_id" type="string" optional>
+      Application ID for the activity
+    </ResponseField>
+    
+    <ResponseField name="created_at" type="number">
+      Unix timestamp when activity started
+    </ResponseField>
+    
+    <ResponseField name="assets" type="object" optional>
+      Activity assets (images)
+    </ResponseField>
+    
+    <ResponseField name="timestamps" type="object" optional>
+      Activity timestamps
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="storage" type="object" optional>
+  Key-value pairs stored for this user
+</ResponseField>
+
+<ResponseField name="server_tag" type="object" optional>
+  User's server tag badge information
+  
+  <Expandable title="properties">
+    <ResponseField name="guild_id" type="string">
+      Guild ID
+    </ResponseField>
+    
+    <ResponseField name="name" type="string">
+      Tag name
+    </ResponseField>
+    
+    <ResponseField name="icon_url" type="string">
+      URL to tag icon
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="status" type="string">
+  Overall user status (online/idle/dnd/offline)
+</ResponseField>
+
+<ResponseField name="last_seen_at" type="object" optional>
+  Last seen timestamp (null if user is online)
+  
+  <Expandable title="properties">
+    <ResponseField name="unix" type="number">
+      Unix timestamp
+    </ResponseField>
+    
+    <ResponseField name="raw" type="string">
+      ISO 8601 date string
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+### Error responses
+
+<Accordion title="400 - Missing user_ids">
+  ```json
+  {
+    "error": "user_ids is required."
+  }
+  ```
+</Accordion>
+
+<Accordion title="400 - Not an array">
+  ```json
+  {
+    "error": "user_ids must be an array."
+  }
+  ```
+</Accordion>
+
+<Accordion title="400 - Invalid ID format">
+  ```json
+  {
+    "error": "user_ids must be an array of strings with 17-19 characters long."
+  }
+  ```
+</Accordion>
+
+<Accordion title="400 - Duplicate user_ids">
+  ```json
+  {
+    "error": "user_ids must not contain duplicates."
+  }
+  ```
+</Accordion>
+
+<Accordion title="400 - Too many users">
+  ```json
+  {
+    "error": "You can only request up to 50 users at once."
+  }
+  ```
+</Accordion>
+
+<Accordion title="404 - Users not monitored">
+  ```json
+  {
+    "error": "Users you requested are not monitored by Lantern."
+  }
+  ```
+</Accordion>
+
+---
+
+## Get user by ID
+
+<CodeGroup>
+```bash cURL
+curl "https://lantern.rest/api/v1/users/123456789012345678"
+```
+
+```bash SVG Badge
+curl "https://lantern.rest/api/v1/users/123456789012345678?svg=1&theme=dark&borderRadius=2"
+```
+
+```javascript JavaScript
+const response = await fetch(
+  'https://lantern.rest/api/v1/users/123456789012345678'
+);
+const user = await response.json();
+```
+
+```python Python
+import requests
+
+response = requests.get(
+    'https://lantern.rest/api/v1/users/123456789012345678'
+)
+user = response.json()
+```
+</CodeGroup>
+
+### Path parameters
+
+<ParamField path="id" type="string" required>
+  The Discord user ID to fetch data for
+  
+  **Validation:**
+  - Must be numeric
+  - Length: 17-19 characters
+  - Pattern: `^[0-9]{17,19}$`
+</ParamField>
+
+### Query parameters
+
+<ParamField query="svg" type="integer" default={0}>
+  Whether to return the user's data as an SVG image instead of JSON
+  
+  **Values:** `0` or `1`
+</ParamField>
+
+<ParamField query="theme" type="string" default="dark">
+  The theme to use for the SVG image (only applies when `svg=1`)
+  
+  **Values:** `light` or `dark`
+</ParamField>
+
+<ParamField query="borderRadius" type="integer" default={2}>
+  The border radius (in rem units) for the SVG image
+  
+  **Validation:**
+  - Must be numeric
+  - Minimum: 0
+  - Pattern: `^[0-9]+$`
+</ParamField>
+
+<ParamField query="hideGlobalName" type="integer" default={0}>
+  Whether to hide the user's global name in the SVG
+  
+  **Values:** `0` or `1`
+</ParamField>
+
+<ParamField query="hideStatus" type="integer" default={0}>
+  Whether to hide the user's status in the SVG
+  
+  **Values:** `0` or `1`
+</ParamField>
+
+<ParamField query="hideBadges" type="integer" default={0}>
+  Whether to hide the user's badges in the SVG
+  
+  **Values:** `0` or `1`
+</ParamField>
+
+<ParamField query="hideActivity" type="integer" default={0}>
+  Whether to hide the user's activity in the SVG
+  
+  **Values:** `0` or `1`
+</ParamField>
+
+<ParamField query="hideLastSeen" type="integer" default={0}>
+  Whether to hide the user's last seen time in the SVG
+  
+  **Values:** `0` or `1`
+</ParamField>
+
+<ParamField query="hideServerTag" type="integer" default={0}>
+  Whether to hide the user's server tag in the SVG
+  
+  **Values:** `0` or `1`
+</ParamField>
+
+<ParamField query="noActivityTitle" type="string" default="No activity">
+  The title to display when the user has no activity
+  
+  **Validation:**
+  - Minimum length: 1 character
+  - Maximum length: 64 characters
+</ParamField>
+
+<ParamField query="noActivityMessage" type="string" default="User is not currently doing anything.">
+  The message to display when the user has no activity
+  
+  **Validation:**
+  - Minimum length: 1 character
+  - Maximum length: 256 characters
+</ParamField>
+
+### Response
+
+When `svg=0` (default), returns the same user object structure as the bulk endpoint above.
+
+When `svg=1`, returns an SVG image with content type `image/svg+xml`.
+
+### Error responses
+
+<Accordion title="404 - User not monitored">
+  ```json
+  {
+    "error": "User 123456789012345678 is not being monitored by Lantern."
+  }
+  ```
+</Accordion>

@@ -1,0 +1,663 @@
+---
+title: Self-hosting Lantern
+description: Deploy your own instance of Lantern with complete control over data and configuration
+---
+
+Self-host Lantern to run your own private instance with full control over data, configuration, and deployment. This guide covers prerequisites, setup, configuration, and deployment.
+
+## Prerequisites
+
+Before self-hosting Lantern, ensure you have these dependencies installed:
+
+<Steps>
+  <Step title="Node.js">
+    Install Node.js v21.x (v22.x is not compatible).
+
+    ```bash
+    # Check your Node.js version
+    node --version
+    ```
+
+    <Warning>
+      v22.x won't work. Use v21.x for compatibility.
+    </Warning>
+
+    Download from [nodejs.org](https://nodejs.org/en/download/)
+  </Step>
+
+  <Step title="pnpm">
+    Install pnpm package manager:
+
+    ```bash
+    npm install -g pnpm
+    ```
+
+    Verify installation:
+
+    ```bash
+    pnpm --version
+    ```
+
+    See [pnpm installation docs](https://pnpm.io/installation) for alternative methods.
+  </Step>
+
+  <Step title="Git">
+    Install Git for cloning the repository:
+
+    ```bash
+    # Check if Git is installed
+    git --version
+    ```
+
+    Download from [git-scm.com](https://git-scm.com/downloads)
+  </Step>
+
+  <Step title="MongoDB">
+    Install MongoDB Community Edition for data storage:
+
+    ```bash
+    # Check if MongoDB is running
+    mongosh --version
+    ```
+
+    Download from [mongodb.com](https://www.mongodb.com/try/download/community)
+
+    <Info>
+      You can also use MongoDB Atlas for a cloud-hosted database instead of running MongoDB locally.
+    </Info>
+  </Step>
+</Steps>
+
+## Installation
+
+Follow these steps to set up Lantern:
+
+<Steps>
+  <Step title="Clone the repository">
+    ```bash
+    git clone https://github.com/discordplace/lantern.git
+    cd lantern
+    ```
+  </Step>
+
+  <Step title="Install dependencies">
+    ```bash
+    pnpm install
+    ```
+
+    This installs all required packages from `package.json`:
+
+    <Accordion title="View dependencies">
+      **Core dependencies:**
+      - `discord.js` - Discord bot framework
+      - `express` - Web server
+      - `express-ws` - WebSocket support
+      - `mongoose` - MongoDB ORM
+      - `winston` - Logging
+      - `zod` - Schema validation
+      
+      **Additional packages:**
+      - `dotenv` - Environment variables
+      - `compression` - Response compression
+      - `morgan` - HTTP request logging
+      - `swagger-ui-express` - API documentation
+    </Accordion>
+  </Step>
+
+  <Step title="Configure environment variables">
+    Rename `.env.example` to `.env`:
+
+    ```bash
+    cp .env.example .env
+    ```
+
+    Edit `.env` with your configuration:
+
+    ```env
+    DISCORD_BOT_TOKEN='your_discord_bot_token'
+    MONGODB_URI='mongodb://localhost:27017'
+    MONGODB_NAME='lantern'
+    KV_TOKEN_ENCRYPTION_SECRET='your_256_bit_encryption_secret'
+    ```
+
+    <Note>
+      **Getting your Discord bot token:**
+      1. Go to [Discord Developer Portal](https://discord.com/developers/applications)
+      2. Create a new application
+      3. Navigate to "Bot" section
+      4. Click "Reset Token" to get your token
+      5. Enable **Presence Intent** and **Server Members Intent**
+    </Note>
+
+    <Warning>
+      **KV_TOKEN_ENCRYPTION_SECRET must be a 256-bit (32-byte) secret.**
+      
+      Generate one using:
+      ```bash
+      node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+      ```
+      
+      Or use an online tool like [asecuritysite.com/encryption/plain](https://asecuritysite.com/encryption/plain)
+      
+      Keep this secret secure - it encrypts all KV storage tokens.
+    </Warning>
+  </Step>
+
+  <Step title="Configure application settings">
+    Edit `src/config.toml` with your settings:
+
+    ```toml
+    bypass_command_permissions_check = ['your_user_id']
+    
+    base_guild_id = 'your_discord_server_id'
+    max_bulk_get_users_size = 50
+    
+    [server]
+    port = 8000
+    
+    [server.socket]
+    heartbeat_interval = 30000
+    maxpayload = 1024
+    clienttracking = true
+    keepalive = true
+    client_allowed_opcodes = [2, 4, 12, 14]
+    ```
+
+    <Accordion title="Configuration options explained">
+      **`bypass_command_permissions_check`**
+      - Array of Discord user IDs that can use admin commands
+      - Add your Discord user ID here
+
+      **`base_guild_id`**
+      - Your Discord server ID where the bot will monitor users
+      - Get this by enabling Developer Mode in Discord and right-clicking your server
+
+      **`max_bulk_get_users_size`**
+      - Maximum users to fetch in a single API request (default: 50)
+
+      **Server settings:**
+      - `port` - HTTP server port (default: 8000)
+      - `heartbeat_interval` - WebSocket heartbeat interval in milliseconds
+      - `maxpayload` - Maximum WebSocket message size in KB
+      - `client_allowed_opcodes` - WebSocket opcodes clients can send
+    </Accordion>
+  </Step>
+</Steps>
+
+## Bot configuration
+
+### Enable required intents
+
+<Warning>
+  **Critical:** Enable these intents in your Discord bot settings or the bot won't work:
+</Warning>
+
+1. Go to [Discord Developer Portal](https://discord.com/developers/applications)
+2. Select your application
+3. Navigate to "Bot" section
+4. Scroll to "Privileged Gateway Intents"
+5. Enable:
+   - **Presence Intent**
+   - **Server Members Intent**
+
+### Invite the bot to your server
+
+Generate an invite link with the required permissions:
+
+1. In Developer Portal, go to "OAuth2" > "URL Generator"
+2. Select scopes:
+   - `bot`
+   - `applications.commands`
+3. Select bot permissions:
+   - Read Messages/View Channels
+   - Send Messages
+   - Use Slash Commands
+4. Copy the generated URL and open it to invite the bot
+
+### Register bot commands
+
+After inviting the bot, register slash commands:
+
+```bash
+pnpm run register:commands
+```
+
+To unregister commands:
+
+```bash
+pnpm run unregister:commands
+```
+
+<Info>
+  Commands are registered globally. It may take up to an hour for Discord to propagate them to all servers.
+</Info>
+
+## Running Lantern
+
+### Development mode
+
+Run with hot reload for development:
+
+```bash
+pnpm dev
+```
+
+This uses `tsx` to run TypeScript directly without building.
+
+### Production mode
+
+Build and start the production server:
+
+```bash
+pnpm start
+```
+
+This command:
+1. Removes the `dist` folder
+2. Compiles TypeScript to JavaScript
+3. Resolves path aliases
+4. Copies config files to `dist/`
+5. Starts the server from `dist/`
+
+From `package.json`:
+
+```json
+{
+  "scripts": {
+    "build": "rimraf dist && tsc --project tsconfig.json && tsc-alias -p tsconfig.json && npm run copyfiles",
+    "start": "npm run build && cd dist && cross-env NODE_ENV=production node src/index.js",
+    "copyfiles": "copyfiles src/config.toml dist/ && copyfiles .env dist/ && copyfiles swagger.json dist/"
+  }
+}
+```
+
+## Accessing your instance
+
+Once running, Lantern is accessible at:
+
+**HTTP API:**
+```
+http://localhost:8000
+```
+
+**WebSocket:**
+```
+ws://localhost:8000/socket
+```
+
+**API Documentation:**
+```
+http://localhost:8000/docs
+```
+
+<Info>
+  Change the port in `config.toml` if port 8000 is already in use.
+</Info>
+
+## Production deployment
+
+### Using PM2 (recommended)
+
+PM2 keeps your application running and restarts it on crashes:
+
+```bash
+# Install PM2 globally
+npm install -g pm2
+
+# Build the application
+pnpm run build
+
+# Start with PM2
+cd dist
+pm2 start src/index.js --name lantern
+
+# Configure auto-restart on server reboot
+pm2 startup
+pm2 save
+```
+
+Useful PM2 commands:
+
+```bash
+# View logs
+pm2 logs lantern
+
+# Restart
+pm2 restart lantern
+
+# Stop
+pm2 stop lantern
+
+# Monitor
+pm2 monit
+```
+
+### Using Docker
+
+Create a `Dockerfile`:
+
+```dockerfile
+FROM node:21-alpine
+
+WORKDIR /app
+
+# Install pnpm
+RUN npm install -g pnpm
+
+# Copy package files
+COPY package.json pnpm-lock.yaml ./
+
+# Install dependencies
+RUN pnpm install --frozen-lockfile
+
+# Copy source code
+COPY . .
+
+# Build application
+RUN pnpm run build
+
+# Expose port
+EXPOSE 8000
+
+# Start application
+CMD ["node", "dist/src/index.js"]
+```
+
+Create `docker-compose.yml`:
+
+```yaml
+version: '3.8'
+
+services:
+  lantern:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - NODE_ENV=production
+    volumes:
+      - ./.env:/app/dist/.env:ro
+      - ./src/config.toml:/app/dist/src/config.toml:ro
+    depends_on:
+      - mongodb
+    restart: unless-stopped
+
+  mongodb:
+    image: mongo:latest
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    restart: unless-stopped
+
+volumes:
+  mongodb_data:
+```
+
+Run with Docker Compose:
+
+```bash
+docker-compose up -d
+```
+
+### Cloudflare configuration
+
+<Warning>
+  **For production use, connect your domain to Cloudflare.**
+  
+  Without Cloudflare, the server cannot retrieve visitor IP addresses and will use `unknown` as the IP.
+</Warning>
+
+Set up Cloudflare:
+
+1. Add your domain to Cloudflare
+2. Update your domain's nameservers
+3. Create an A record pointing to your server IP
+4. Enable Cloudflare proxy (orange cloud icon)
+5. Set SSL/TLS encryption mode to "Full" or "Full (strict)"
+
+Cloudflare provides:
+- DDoS protection
+- CDN caching
+- SSL/TLS encryption
+- Real IP address forwarding
+- Rate limiting
+
+### Reverse proxy with Nginx
+
+For HTTPS and better performance, use Nginx:
+
+```nginx
+server {
+    listen 80;
+    server_name lantern.yourdomain.com;
+    return 301 https://$server_name$request_uri;
+}
+
+server {
+    listen 443 ssl http2;
+    server_name lantern.yourdomain.com;
+
+    ssl_certificate /path/to/cert.pem;
+    ssl_certificate_key /path/to/key.pem;
+
+    location / {
+        proxy_pass http://localhost:8000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+    }
+
+    location /socket {
+        proxy_pass http://localhost:8000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "Upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_read_timeout 86400;
+    }
+}
+```
+
+## Database backups
+
+Lantern includes automated MongoDB backup functionality.
+
+### Configure backups
+
+Edit `config.toml`:
+
+```toml
+[database.backup]
+output_dir = './database-backups'
+enabled = true
+discord_channel = '1234567890123456789'
+cron_pattern = '0 0 * * *'
+exclude_collections = ['evaluateresults']
+```
+
+**Options:**
+- `output_dir` - Directory to store backup files
+- `enabled` - Enable/disable automatic backups
+- `discord_channel` - Discord channel ID to send backup notifications
+- `cron_pattern` - Backup schedule (default: daily at midnight)
+- `exclude_collections` - Collections to skip in backups
+
+### Manual backup
+
+Create a backup manually:
+
+```bash
+pnpm run build
+node dist/src/scripts/createMongoBackup.js
+```
+
+Backups are stored as compressed archives in the `output_dir`.
+
+## Monitoring and logs
+
+Lantern uses Winston for logging with daily log rotation.
+
+### Log levels
+
+Configured in `config.toml`:
+
+```toml
+[logger.levels]
+error = 'red'
+warn = 'yellow'
+info = 'blue'
+debug = 'grey'
+database = 'magenta'
+bot = 'green'
+http = 'yellow'
+socket = 'cyan'
+```
+
+### Log files
+
+Logs are written to:
+- `logs/error-YYYY-MM-DD.log` - Error logs only
+- `logs/combined-YYYY-MM-DD.log` - All logs
+
+Logs rotate daily and are kept for 14 days by default.
+
+### Viewing logs
+
+```bash
+# View latest errors
+tail -f logs/error-$(date +%Y-%m-%d).log
+
+# View all recent logs
+tail -f logs/combined-$(date +%Y-%m-%d).log
+
+# Search logs
+grep "WebSocket" logs/combined-*.log
+```
+
+## Troubleshooting
+
+<Accordion title="Bot is offline">
+  **Check:**
+  - Discord bot token is correct in `.env`
+  - Bot has been invited to your server
+  - Presence Intent and Server Members Intent are enabled
+  - MongoDB is running and accessible
+
+  **View logs:**
+  ```bash
+  tail -f logs/combined-$(date +%Y-%m-%d).log | grep bot
+  ```
+</Accordion>
+
+<Accordion title="WebSocket connections failing">
+  **Check:**
+  - Port 8000 is not blocked by firewall
+  - WebSocket endpoint is `/socket`
+  - Client is sending proper INIT message within 5 seconds
+  - Heartbeats are being sent at correct interval
+
+  **View WebSocket logs:**
+  ```bash
+  tail -f logs/combined-$(date +%Y-%m-%d).log | grep socket
+  ```
+</Accordion>
+
+<Accordion title="Database connection errors">
+  **Check:**
+  - MongoDB is running: `mongosh`
+  - `MONGODB_URI` in `.env` is correct
+  - Database user has proper permissions
+  - Firewall allows MongoDB port (27017)
+
+  **View database logs:**
+  ```bash
+  tail -f logs/combined-$(date +%Y-%m-%d).log | grep database
+  ```
+</Accordion>
+
+<Accordion title="Commands not registering">
+  **Check:**
+  - You ran `pnpm run register:commands`
+  - Bot has `applications.commands` scope
+  - Wait up to 1 hour for global commands to propagate
+
+  **Re-register commands:**
+  ```bash
+  pnpm run unregister:commands
+  pnpm run register:commands
+  ```
+</Accordion>
+
+<Accordion title="Port already in use">
+  **Solution:** Change the port in `config.toml`:
+  ```toml
+  [server]
+  port = 3000
+  ```
+
+  **Or kill the process using port 8000:**
+  ```bash
+  # Linux/Mac
+  lsof -ti:8000 | xargs kill -9
+
+  # Windows
+  netstat -ano | findstr :8000
+  taskkill /PID <PID> /F
+  ```
+</Accordion>
+
+## Environment variables reference
+
+Complete `.env` configuration:
+
+```env
+# Discord Bot Token (required)
+# Get from https://discord.com/developers/applications
+DISCORD_BOT_TOKEN='your_bot_token_here'
+
+# MongoDB Connection URI (required)
+# Local: mongodb://localhost:27017
+# Atlas: mongodb+srv://username:password@cluster.mongodb.net
+MONGODB_URI='mongodb://localhost:27017'
+
+# MongoDB Database Name (required)
+MONGODB_NAME='lantern'
+
+# 256-bit encryption secret for KV storage tokens (required)
+# Generate with: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+KV_TOKEN_ENCRYPTION_SECRET='your_32_byte_hex_secret'
+```
+
+## Security considerations
+
+<Warning>
+  **Production security checklist:**
+</Warning>
+
+- Keep `.env` file secure and never commit it to Git
+- Use strong encryption secret for `KV_TOKEN_ENCRYPTION_SECRET`
+- Enable Cloudflare or similar DDoS protection
+- Use HTTPS in production (via reverse proxy or Cloudflare)
+- Regularly update dependencies: `pnpm update`
+- Monitor logs for suspicious activity
+- Implement rate limiting for API endpoints
+- Restrict MongoDB access to localhost or trusted IPs
+- Use MongoDB authentication in production
+- Keep Discord bot token secure - regenerate if exposed
+
+## Next steps
+
+Now that Lantern is running:
+
+- Read the [WebSocket guide](/guides/websocket) to integrate real-time presence updates
+- Explore the [KV Storage guide](/guides/kv-storage) to store custom user data
+- Check the API documentation at `http://localhost:8000/docs`
+- Join the Lantern community for support and updates
