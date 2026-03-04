@@ -1,0 +1,87 @@
+{
+  "projectType": "api-service",
+  "projectName": "Lantern",
+  "projectDescription": "A powerful service to broadcast your active Discord status through a RESTful API and WebSocket connection in real-time.",
+  "theme": "palm",
+  "primaryColor": "#5c64f4",
+  "lightColor": "#acb4fc",
+  "darkColor": "#ffffff",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "quickstart"
+            ]
+          },
+          {
+            "group": "Guides",
+            "pages": [
+              "guides/websocket",
+              "guides/kv-storage",
+              "guides/self-hosting"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "REST API",
+            "pages": [
+              "api/overview",
+              "api/users",
+              "api/storage"
+            ]
+          },
+          {
+            "group": "WebSocket",
+            "pages": [
+              "api/websocket-overview",
+              "api/websocket-opcodes"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Real-time Discord presence tracking via REST API and WebSocket",
+    "Spotify integration showing current playing tracks",
+    "Key-value storage system for user-specific data",
+    "WebSocket connection with subscription-based updates",
+    "Self-hosting support with minimal setup",
+    "OpenAPI/Swagger documentation"
+  ],
+  "publicApiSurface": [
+    "GET /api/v1/users",
+    "GET /api/v1/users/:id",
+    "GET /api/v1/users/:user_id/storage",
+    "GET /api/v1/users/:user_id/storage/:key",
+    "PUT /api/v1/users/:user_id/storage/:key",
+    "PATCH /api/v1/users/:user_id/storage/:key",
+    "DELETE /api/v1/users/:user_id/storage/:key",
+    "DELETE /api/v1/users/:user_id/storage",
+    "WebSocket wss://lantern.rest/socket",
+    "Opcode 1: HELLO",
+    "Opcode 2: INIT",
+    "Opcode 3: INIT_ACK",
+    "Opcode 4: HEARTBEAT",
+    "Opcode 5: HEARTBEAT_ACK",
+    "Opcode 6: PRESENCE_UPDATE",
+    "Opcode 7: USER_LEFT",
+    "Opcode 8: USER_JOINED",
+    "Opcode 9: DISCONNECT",
+    "Opcode 10: STORAGE_UPDATE",
+    "Opcode 11: ERROR",
+    "Opcode 12: SUBSCRIBE",
+    "Opcode 13: SUBSCRIBE_ACK",
+    "Opcode 14: UNSUBSCRIBE",
+    "Opcode 15: UNSUBSCRIBE_ACK"
+  ]
+}
